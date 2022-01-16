@@ -39,6 +39,8 @@ type NativeProps = $ReadOnly<{|
   minimumTrackImage?: ?ImageSource,
   minimumTrackTintColor?: ?ColorValue,
   minimumValue?: ?number,
+  secondaryTrackTintColor?: ?ColorValue,
+  secondaryValue?: ?number,
   onChange?: ?(event: Event) => void,
   onRNCSliderSlidingStart?: ?(event: Event) => void,
   onRNCSliderSlidingComplete?: ?(event: Event) => void,

@@ -16,7 +16,23 @@
 
 - (instancetype)initWithFrame:(CGRect)frame
 {
-    return [super initWithFrame:frame];
+    self =  [super initWithFrame:frame];
+
+	self.secondaryProgress = [[UIProgressView alloc] initWithFrame:self.bounds];
+    self.secondaryProgress.userInteractionEnabled = NO;
+	self.secondaryProgress.backgroundColor = [UIColor clearColor];
+	self.secondaryProgress.progress = 0;
+	[self addSubview:self.secondaryProgress];
+
+    // NSLayoutConstraint *left = [NSLayoutConstraint constraintWithItem:self.secondaryProgress attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self attribute:NSLayoutAttributeLeft multiplier:1 constant:0];
+    // NSLayoutConstraint *centerY = [NSLayoutConstraint constraintWithItem:self.secondaryProgress attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self attribute:NSLayoutAttributeCenterY multiplier:1 constant:0.75];  // edit the constant value based on the thumb image
+    // NSLayoutConstraint *right = [NSLayoutConstraint constraintWithItem:self.secondaryProgress attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:self attribute:NSLayoutAttributeTrailing multiplier:1 constant:0];
+
+    // [self addConstraints:@[left,right,centerY]];
+    [self sendSubviewToBack:self.secondaryProgress];
+
+	return self;
+
 }
 
 - (void)setValue:(float)value
@@ -33,6 +49,11 @@
   [self setupAccessibility:value];
 }
 
+- (void)setSecondaryValue:(float)secondaryValue
+{
+  [_secondaryProgress setProgress:secondaryValue animated:YES];
+}
+
 - (void)setupAccessibility:(float)value
 {
   if (self.accessibilityUnits && self.accessibilityIncrements && [self.accessibilityIncrements count] - 1 == (int)self.maximumValue) {
@@ -44,7 +65,7 @@
     if (sliderValue && [sliderValue intValue] == 1) {
       spokenUnits = [spokenUnits substringToIndex:stringLength-1];
     }
-    
+
     self.accessibilityValue = [NSString stringWithFormat:@"%@ %@", sliderValue, spokenUnits];
   }
 }
@@ -109,6 +130,11 @@
 - (UIImage *)maximumTrackImage
 {
   return [self thumbImageForState:UIControlStateNormal];
+}
+
+- (void) setSecondaryTrackTintColor:(UIColor *)secondaryTrackTintColor
+{
+   [_secondaryProgress setProgressTintColor:secondaryTrackTintColor];
 }
 
 - (void)setThumbImage:(UIImage *)thumbImage

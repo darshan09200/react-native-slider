@@ -97,6 +97,7 @@ type Props = $ReadOnly<{|
    * Initial maximum value of the slider. Default value is 1.
    */
   maximumValue?: ?number,
+  secondaryValue?: ?number,
 
   /**
    * The color used for the track to the left of the button.
@@ -109,6 +110,9 @@ type Props = $ReadOnly<{|
    * Overrides the default blue gradient image on iOS.
    */
   maximumTrackTintColor?: ?ColorValue,
+
+  secondaryTrackTintColor?: ?ColorValue,
+
   /**
    * The color used to tint the default thumb images on iOS, or the
    * color of the foreground switch grip on Android.

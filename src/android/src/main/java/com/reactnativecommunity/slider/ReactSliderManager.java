@@ -155,6 +155,11 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider> {
     }
   }
 
+  @ReactProp(name = "secondaryValue", defaultDouble = 0d)
+  public void setSecondaryValue(ReactSlider view, double value) {
+    view.setSecondaryValue(value);
+  }
+
   @ReactProp(name = "minimumValue", defaultDouble = 0d)
   public void setMinimumValue(ReactSlider view, double value) {
     view.setMinValue(value);
@@ -218,6 +223,22 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider> {
       }
       else {
         background.setColorFilter(color, PorterDuff.Mode.SRC_IN);
+      }
+    }
+  }
+
+  @ReactProp(name = "secondaryTrackTintColor", customType = "Color")
+  public void setSecondaryTrackTintColor(ReactSlider view, Integer color) {
+    LayerDrawable drawable = (LayerDrawable) view.getProgressDrawable().getCurrent();
+    Drawable secondaryProgress = drawable.findDrawableByLayerId(android.R.id.secondaryProgress);
+    if (color == null) {
+      secondaryProgress.clearColorFilter();
+    } else {
+      if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+        secondaryProgress.setColorFilter(new PorterDuffColorFilter((int)color, PorterDuff.Mode.SRC_IN));
+      }
+      else {
+        secondaryProgress.setColorFilter(color, PorterDuff.Mode.SRC_IN);
       }
     }
   }

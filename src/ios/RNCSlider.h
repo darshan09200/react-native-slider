@@ -25,5 +25,6 @@
 @property (nonatomic, assign) bool tapToSeek;
 @property (nonatomic, strong) NSString *accessibilityUnits;
 @property (nonatomic, strong) NSArray *accessibilityIncrements;
+@property (nonatomic, strong) UIProgressView *secondaryProgress;
 
 @end

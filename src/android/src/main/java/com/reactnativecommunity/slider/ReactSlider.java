@@ -15,7 +15,9 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
+
 import androidx.appcompat.widget.AppCompatSeekBar;
+
 import java.net.URL;
 import java.util.List;
 import java.util.Timer;
@@ -24,6 +26,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
 import javax.annotation.Nullable;
 
 /**
@@ -36,215 +39,234 @@ import javax.annotation.Nullable;
  */
 public class ReactSlider extends AppCompatSeekBar {
 
-  /**
-   * If step is 0 (unset) we default to this total number of steps. Don't use 100 which leads to
-   * rounding errors (0.200000000001).
-   */
-  private static int DEFAULT_TOTAL_STEPS = 128;
+	/**
+	 * If step is 0 (unset) we default to this total number of steps. Don't use 100 which leads to
+	 * rounding errors (0.200000000001).
+	 */
+	private static int DEFAULT_TOTAL_STEPS = 128;
 
-  /**
-   * We want custom min..max range. Android only supports 0..max range so we implement this
-   * ourselves.
-   */
-  private double mMinValue = 0;
+	/**
+	 * We want custom min..max range. Android only supports 0..max range so we implement this
+	 * ourselves.
+	 */
+	private double mMinValue = 0;
 
-  private double mMaxValue = 0;
+	private double mMaxValue = 0;
 
-  /**
-   * Value sent from JS (setState). Doesn't get updated during drag (slider is not a controlled
-   * component).
-   */
-  private double mValue = 0;
+	/**
+	 * Value sent from JS (setState). Doesn't get updated during drag (slider is not a controlled
+	 * component).
+	 */
+	private double mValue = 0;
 
-  /** If zero it's determined automatically. */
-  private double mStep = 0;
+	private double mSecondaryValue = 0;
 
-  private double mStepCalculated = 0;
+	/**
+	 * If zero it's determined automatically.
+	 */
+	private double mStep = 0;
 
-  private String mAccessibilityUnits;
+	private double mStepCalculated = 0;
 
-  private List<String> mAccessibilityIncrements;
+	private String mAccessibilityUnits;
 
-  public ReactSlider(Context context, @Nullable AttributeSet attrs, int style) {
-    super(context, attrs, style);
-    disableStateListAnimatorIfNeeded();
-  }
+	private List<String> mAccessibilityIncrements;
 
-  private void disableStateListAnimatorIfNeeded() {
-    // We disable the state list animator for Android 6 and 7; this is a hack to prevent T37452851
-    // and https://github.com/facebook/react-native/issues/9979
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-        && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-      super.setStateListAnimator(null);
-    }
-  }
+	public ReactSlider(Context context, @Nullable AttributeSet attrs, int style) {
+		super(context, attrs, style);
+		disableStateListAnimatorIfNeeded();
+	}
 
-  /* package */ void setMaxValue(double max) {
-    mMaxValue = max;
-    updateAll();
-  }
+	private void disableStateListAnimatorIfNeeded() {
+		// We disable the state list animator for Android 6 and 7; this is a hack to prevent T37452851
+		// and https://github.com/facebook/react-native/issues/9979
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+			&& Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+			super.setStateListAnimator(null);
+		}
+	}
 
-  /* package */ void setMinValue(double min) {
-    mMinValue = min;
-    updateAll();
-  }
+	/* package */ void setMaxValue(double max) {
+		mMaxValue = max;
+		updateAll();
+	}
 
-  /* package */ void setValue(double value) {
-    mValue = value;
-    updateValue();
-  }
+	/* package */ void setMinValue(double min) {
+		mMinValue = min;
+		updateAll();
+	}
 
-  /* package */ void setStep(double step) {
-    mStep = step;
-    updateAll();
-  }
+	/* package */ void setValue(double value) {
+		mValue = value;
+		updateValue();
+	}
 
-  void setAccessibilityUnits(String accessibilityUnits) {
-    mAccessibilityUnits = accessibilityUnits;
-  }
+	/* package */ void setSecondaryValue(double secondaryValue) {
+		mSecondaryValue = secondaryValue;
+		updateSecondaryValue();
+	}
 
-  void setAccessibilityIncrements(List<String> accessibilityIncrements) {
-    mAccessibilityIncrements = accessibilityIncrements;
-  }
+	/* package */ void setStep(double step) {
+		mStep = step;
+		updateAll();
+	}
 
-  @Override
-  public void onPopulateAccessibilityEvent(AccessibilityEvent event) {
-    super.onPopulateAccessibilityEvent(event);
+	void setAccessibilityUnits(String accessibilityUnits) {
+		mAccessibilityUnits = accessibilityUnits;
+	}
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED ||
-          (event.getEventType() == AccessibilityEvent.TYPE_VIEW_SELECTED && this.isAccessibilityFocused())) {
-          this.setupAccessibility((int)mValue);
-      }
-    }
-  }
+	void setAccessibilityIncrements(List<String> accessibilityIncrements) {
+		mAccessibilityIncrements = accessibilityIncrements;
+	}
 
-  @Override
-  public void announceForAccessibility(CharSequence text) {
-    Context ctx = this.getContext();
-    final AccessibilityManager manager = (AccessibilityManager) ctx.getSystemService(Context.ACCESSIBILITY_SERVICE);
+	@Override
+	public void onPopulateAccessibilityEvent(AccessibilityEvent event) {
+		super.onPopulateAccessibilityEvent(event);
 
-    if (manager.isEnabled()) {
-      final AccessibilityEvent e = AccessibilityEvent.obtain();
-      e.setEventType(AccessibilityEvent.TYPE_ANNOUNCEMENT);
-      e.setClassName(this.getClass().getName());
-      e.setPackageName(ctx.getPackageName());
-      e.getText().add(text);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+			if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED ||
+				(event.getEventType() == AccessibilityEvent.TYPE_VIEW_SELECTED && this.isAccessibilityFocused())) {
+				this.setupAccessibility((int) mValue);
+			}
+		}
+	}
 
-      TimerTask task = new TimerTask() {
-        @Override
-        public void run() {
-          manager.sendAccessibilityEvent(e);
-        }
-      };
+	@Override
+	public void announceForAccessibility(CharSequence text) {
+		Context ctx = this.getContext();
+		final AccessibilityManager manager = (AccessibilityManager) ctx.getSystemService(Context.ACCESSIBILITY_SERVICE);
 
-      Timer timer = new Timer();
-      timer.schedule(task, 1000);
-    }
-  }
+		if (manager.isEnabled()) {
+			final AccessibilityEvent e = AccessibilityEvent.obtain();
+			e.setEventType(AccessibilityEvent.TYPE_ANNOUNCEMENT);
+			e.setClassName(this.getClass().getName());
+			e.setPackageName(ctx.getPackageName());
+			e.getText().add(text);
 
-  @Override
-  public boolean onTouchEvent(MotionEvent arg0) {
-    super.onTouchEvent(arg0);
+			TimerTask task = new TimerTask() {
+				@Override
+				public void run() {
+					manager.sendAccessibilityEvent(e);
+				}
+			};
 
-    if (arg0.getActionMasked() == MotionEvent.ACTION_DOWN && this.isEnabled() == false) {
-      announceForAccessibility("slider disabled");
-    }
-    // Returns: True if the view handled the hover event
-    return true;
-  }
+			Timer timer = new Timer();
+			timer.schedule(task, 1000);
+		}
+	}
 
-  public void setupAccessibility(int index) {
-    if (mAccessibilityUnits != null && mAccessibilityIncrements != null && mAccessibilityIncrements.size() - 1 == (int)mMaxValue) {
-      String sliderValue = mAccessibilityIncrements.get(index);
-      int stringLength = mAccessibilityUnits.length();
+	@Override
+	public boolean onTouchEvent(MotionEvent arg0) {
+		super.onTouchEvent(arg0);
 
-      String spokenUnits = mAccessibilityUnits;
-      if (sliderValue != null && Integer.parseInt(sliderValue) == 1) {
-        spokenUnits = spokenUnits.substring(0, stringLength - 1);
-      }
+		if (arg0.getActionMasked() == MotionEvent.ACTION_DOWN && this.isEnabled() == false) {
+			announceForAccessibility("slider disabled");
+		}
+		// Returns: True if the view handled the hover event
+		return true;
+	}
 
-      this.announceForAccessibility(String.format("%s %s", sliderValue, spokenUnits));
-    }
-  }
+	public void setupAccessibility(int index) {
+		if (mAccessibilityUnits != null && mAccessibilityIncrements != null && mAccessibilityIncrements.size() - 1 == (int) mMaxValue) {
+			String sliderValue = mAccessibilityIncrements.get(index);
+			int stringLength = mAccessibilityUnits.length();
+
+			String spokenUnits = mAccessibilityUnits;
+			if (sliderValue != null && Integer.parseInt(sliderValue) == 1) {
+				spokenUnits = spokenUnits.substring(0, stringLength - 1);
+			}
+
+			this.announceForAccessibility(String.format("%s %s", sliderValue, spokenUnits));
+		}
+	}
 
 
+	/**
+	 * Convert SeekBar's native progress value (e.g. 0..100) to a value passed to JS (e.g. -1.0..2.5).
+	 */
+	public double toRealProgress(int seekBarProgress) {
+		if (seekBarProgress == getMax()) {
+			return mMaxValue;
+		}
+		return seekBarProgress * getStepValue() + mMinValue;
+	}
 
-  /**
-   * Convert SeekBar's native progress value (e.g. 0..100) to a value passed to JS (e.g. -1.0..2.5).
-   */
-  public double toRealProgress(int seekBarProgress) {
-    if (seekBarProgress == getMax()) {
-      return mMaxValue;
-    }
-    return seekBarProgress * getStepValue() + mMinValue;
-  }
+	/**
+	 * Update underlying native SeekBar's values.
+	 */
+	private void updateAll() {
+		if (mStep == 0) {
+			mStepCalculated = (mMaxValue - mMinValue) / (double) DEFAULT_TOTAL_STEPS;
+		}
+		setMax(getTotalSteps());
+		updateValue();
+	}
 
-  /** Update underlying native SeekBar's values. */
-  private void updateAll() {
-    if (mStep == 0) {
-      mStepCalculated = (mMaxValue - mMinValue) / (double) DEFAULT_TOTAL_STEPS;
-    }
-    setMax(getTotalSteps());
-    updateValue();
-  }
+	/**
+	 * Update value only (optimization in case only value is set).
+	 */
+	private void updateValue() {
+		setProgress((int) Math.round((mValue - mMinValue) / (mMaxValue - mMinValue) * getTotalSteps()));
+	}
 
-  /** Update value only (optimization in case only value is set). */
-  private void updateValue() {
-    setProgress((int) Math.round((mValue - mMinValue) / (mMaxValue - mMinValue) * getTotalSteps()));
-  }
+	/**
+	 * Update value only (optimization in case only value is set).
+	 */
+	private void updateSecondaryValue() {
+		setSecondaryProgress((int) Math.round((mSecondaryValue - mMinValue) / (mMaxValue - mMinValue) * getTotalSteps()));
+	}
 
-  private int getTotalSteps() {
-    return (int) Math.ceil((mMaxValue - mMinValue) / getStepValue());
-  }
+	private int getTotalSteps() {
+		return (int) Math.ceil((mMaxValue - mMinValue) / getStepValue());
+	}
 
-  private double getStepValue() {
-    return mStep > 0 ? mStep : mStepCalculated;
-  }
+	private double getStepValue() {
+		return mStep > 0 ? mStep : mStepCalculated;
+	}
 
-  private BitmapDrawable getBitmapDrawable(final String uri) {
-    BitmapDrawable bitmapDrawable = null;
-    ExecutorService executorService = Executors.newSingleThreadExecutor();
-    Future<BitmapDrawable> future = executorService.submit(new Callable<BitmapDrawable>() {
-      @Override
-      public BitmapDrawable call() {
-        BitmapDrawable bitmapDrawable = null;
-        try {
-          Bitmap bitmap = null;
-          if (uri.startsWith("http://") || uri.startsWith("https://") ||
-              uri.startsWith("file://") || uri.startsWith("asset://") || uri.startsWith("data:")) {
-            bitmap = BitmapFactory.decodeStream(new URL(uri).openStream());
-          } else {
-            int drawableId = getResources()
-                .getIdentifier(uri, "drawable", getContext()
-                .getPackageName());
-            bitmap = BitmapFactory.decodeResource(getResources(), drawableId);
-          }
+	private BitmapDrawable getBitmapDrawable(final String uri) {
+		BitmapDrawable bitmapDrawable = null;
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+		Future<BitmapDrawable> future = executorService.submit(new Callable<BitmapDrawable>() {
+			@Override
+			public BitmapDrawable call() {
+				BitmapDrawable bitmapDrawable = null;
+				try {
+					Bitmap bitmap = null;
+					if (uri.startsWith("http://") || uri.startsWith("https://") ||
+						uri.startsWith("file://") || uri.startsWith("asset://") || uri.startsWith("data:")) {
+						bitmap = BitmapFactory.decodeStream(new URL(uri).openStream());
+					} else {
+						int drawableId = getResources()
+							.getIdentifier(uri, "drawable", getContext()
+								.getPackageName());
+						bitmap = BitmapFactory.decodeResource(getResources(), drawableId);
+					}
 
-          bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-        return bitmapDrawable;
-      }
-    });
-    try {
-      bitmapDrawable = future.get();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    return bitmapDrawable;
-  }
+					bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				return bitmapDrawable;
+			}
+		});
+		try {
+			bitmapDrawable = future.get();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return bitmapDrawable;
+	}
 
-  public void setThumbImage(final String uri) {
-    if (uri != null) {
-      setThumb(getBitmapDrawable(uri));
-      // Enable alpha channel for the thumbImage
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        setSplitTrack(false);
-      }
-    } else {
-      setThumb(getThumb());
-    }
-  }
+	public void setThumbImage(final String uri) {
+		if (uri != null) {
+			setThumb(getBitmapDrawable(uri));
+			// Enable alpha channel for the thumbImage
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+				setSplitTrack(false);
+			}
+		} else {
+			setThumb(getThumb());
+		}
+	}
 }

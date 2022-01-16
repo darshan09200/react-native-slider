@@ -94,7 +94,7 @@ static float discreteValue(RNCSlider *sender, float value) {
   // If step is set and less than or equal to difference between max and min values,
   // pick the closest discrete multiple of step to return.
   if (sender.step > 0 && sender.step <= (sender.maximumValue - sender.minimumValue)) {
-    
+
     // Round up when increase, round down when decrease.
     double (^_round)(double) = ^(double x) {
       if (!UIAccessibilityIsVoiceOverRunning()) {
@@ -164,6 +164,7 @@ static void RNCSendSliderEvent(RNCSlider *sender, BOOL continuous, BOOL isSlidin
 }
 
 RCT_EXPORT_VIEW_PROPERTY(value, float);
+RCT_EXPORT_VIEW_PROPERTY(secondaryValue, float);
 RCT_EXPORT_VIEW_PROPERTY(step, float);
 RCT_EXPORT_VIEW_PROPERTY(trackImage, UIImage);
 RCT_EXPORT_VIEW_PROPERTY(minimumTrackImage, UIImage);
@@ -172,6 +173,7 @@ RCT_EXPORT_VIEW_PROPERTY(minimumValue, float);
 RCT_EXPORT_VIEW_PROPERTY(maximumValue, float);
 RCT_EXPORT_VIEW_PROPERTY(minimumTrackTintColor, UIColor);
 RCT_EXPORT_VIEW_PROPERTY(maximumTrackTintColor, UIColor);
+RCT_EXPORT_VIEW_PROPERTY(secondaryTrackTintColor, UIColor);
 RCT_EXPORT_VIEW_PROPERTY(onRNCSliderValueChange, RCTBubblingEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onRNCSliderSlidingStart, RCTBubblingEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onRNCSliderSlidingComplete, RCTBubblingEventBlock);
